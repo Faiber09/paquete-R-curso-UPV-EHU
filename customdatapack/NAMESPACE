@@ -1,0 +1,11 @@
+exportClasses(CustomData)
+exportMethods(show, colnames, column_classes, normalize, standardize)
+export(customdata, 
+       applyDiscretizeEF, 
+       applyDiscretizeEW, 
+       applyEntropy, 
+       rocAuc, 
+       plot_entropy,
+       plot_roc_curve,
+       plot_roc,
+       plotCorrMatrix)

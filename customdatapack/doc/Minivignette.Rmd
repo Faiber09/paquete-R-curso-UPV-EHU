@@ -1,0 +1,137 @@
+---
+title: "customdatapack Vignette"
+author: "Faiber Alonso falonso010@ikasle.ehu.eus"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The package ***customdatapack*** handles a custom class called *CustomData* that contains a data frame in the slot named *data*. *CustomData* is highly versatile, as we can initialize an object from a vector, matrix, factor, or data frame, and our class will internally convert it to a data frame. We have implemented several utilities seen as exercises in the course *"Mathematical and Statistical Software"* at the *University of the Basque Country UPV/EHU*.
+
+To begin, the object is constructed with the constructor `customdata()`. When we print an object of *CustomData*, it will indicate that it belongs to this class and will also display the number of rows and columns of its data frame along with a preview of its first few rows, as shown below:
+
+```{r}
+library(customdatapack)
+
+df <- data.frame(columna1 = 1:3, columna2 = letters[1:3])
+obj_df <- customdata(df)
+print(obj_df)
+
+vec <- c(10, 20, 30)
+obj_vec <- customdata(vec)
+print(obj_vec)
+
+fac <- factor(c("A", "B", "A"))
+obj_fac <- customdata(fac)
+print(obj_fac)
+
+mat <- matrix(1:4, nrow = 2)
+obj_mat <- customdata(mat)
+print(obj_mat)
+```
+
+We can also use the methods `colnames()` and `column_classes()` to obtain the column names and the data class in each column:
+
+```{r}
+colnames(obj_df)
+column_classes(obj_df)
+
+colnames(obj_fac)
+column_classes(obj_fac)
+```
+
+The methods `normalize()` and `standardize()` receive a *CustomData* object and return a *CustomData* object with the numeric columns normalized (from 0 to 1) or standardized (with mean 0 and standard deviation 1). Numeric columns with a single value and columns that are not numeric remain unchanged:
+
+```{r}
+df <- data.frame(a = 1:5, b = rep(5, 5), c = 10:14, d = factor(c('a','b','a','b','b')))
+obj <- customdata(df)
+print(obj)
+
+normalized_obj <- normalize(obj)
+print(normalized_obj)
+ 
+standardized_obj <- standardize(obj)
+print(standardized_obj)
+```
+
+The function `applyDiscretizeEF(custom_data, num.bins)` and the function `applyDiscretizeEW(custom_data, num.bins)` are two functions that receive a *CustomData* object and discretize its numeric columns into `num.bins` categories. Non-numeric columns remain unchanged. The output is a *CustomData* object with the discretized columns converted to a factor class indicating the bin to which they belong. `applyDiscretizeEF` discretizes so that each bin has approximately the same number of data points ($\pm$ 1). `applyDiscretizeEW` discretizes so that each bin has equal length. The extremes are always replaced by ($\pm$ Inf) so that these cut points can be used to discretize any other numeric vector.
+
+```{r}
+df <- data.frame(a = c(1,2,3,3,4,4,4,6,8,10), b = 1:10, c = letters[1:10])
+obj <- customdata(df)
+
+discretized_objEF <- applyDiscretizeEF(obj, num.bins = 3)
+print(discretized_objEF)
+
+discretized_objEW <- applyDiscretizeEW(obj, num.bins = 3)
+print(discretized_objEW)
+```
+
+`applyEntropy()` takes a *CustomData* object and returns a *CustomData* object with entropy and normalized entropy calculated only for factor columns. Additionally, we can use `plot_entropy` on the same object to visualize the normalized entropy of factor columns in a bar chart:
+
+```{r, fig.width=10, fig.height=6, out.width="100%"}
+df <- data.frame(a = factor(c(rep('a', 95), rep('b', 5))), 
+                  b = factor(c(rep('x', 50), rep('y', 50))),
+                  c = factor(c(rep('k', 70), rep('l', 30))),
+                  d = 1:100)
+obj <- customdata(df)
+
+entropy_values <- applyEntropy(obj)
+print(entropy_values)
+
+plot_entropy(obj)
+```
+
+We can see that the column `d`, not being a factor class, is ignored by both functions, generating a warning but not an error.
+
+The `rocAuc` function calculates the ROC curve and AUC from a given *data.frame* or *CustomData* object containing numeric and binary label columns. The numeric label column can represent probabilities from a classifier model or real numbers to evaluate how well the data can be separated given a cut point. The binary label can be either logical values (`TRUE` or `FALSE`) or numeric values (`1` or `0`). Additionally, we can plot the ROC curve using the `plot_roc` function.
+
+
+```{r, fig.width=10, fig.height=6, out.width="100%"}
+set.seed(113)  # For reproducibility
+df <- data.frame(
+  prob = c(
+    runif(50, 0.4, 1),   # High probabilities for positive class
+    runif(50, 0, 0.6)    # Low probabilities for negative class
+  ),
+  label = c(
+    rep(1, 50),  # Positive class labels
+    rep(0, 50)   # Negative class labels
+  )
+)
+
+obj <- customdata(df)
+
+result <- rocAuc(obj, "prob", "label")  # Calculate ROC points and AUC
+
+plot_roc(obj, "prob", "label") # Plot the ROC curve
+```
+
+Finally, `plotCorrMatrix` is a function that plots the correlation matrix of the numeric variables from a *data.frame* or a *CustomData* object. For this, it is strictly necessary to have the **ggplot2** and **reshape2** packages installed:
+
+```{r, fig.width=10, fig.height=6, out.width="100%"}
+set.seed(113)  # For reproducibility
+df <- data.frame(a = rnorm(10), b = rnorm(10), c = rnorm(10), d = as.factor(sample(letters, 10, replace = TRUE)))
+custom_data <- customdata(df)
+print(df)
+gg <- plotCorrMatrix(custom_data)
+gg
+```
+
+We can see that columns which are not numeric (in this case, the column 'd') are not considered for the plot. The generated plot is a `ggplot` object, so it can be modified:
+
+```{r, fig.width=10, fig.height=6, out.width="100%"}
+gg + ggplot2::scale_fill_viridis_c()
+
+```
+
