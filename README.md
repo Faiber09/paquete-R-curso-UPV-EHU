@@ -1,5 +1,5 @@
 # paquete-R-curso-UPV-EHU
-Paquete distribuible de R para el curso de Software Matematico y Estadistico de maestria de la UPV/EHU
+Distributable R package for the Master's course in Mathematical and Statistical Software at UPV/EHU, named customdatapack.
 
 # Description
 This package includes some basic functions developed during the course as exercises in the "Software matematico y estadistico" subject. 
